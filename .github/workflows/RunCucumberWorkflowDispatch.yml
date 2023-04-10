@@ -53,4 +53,3 @@ jobs:
         run: >
           mvn test -Dtest=TestRunner
           --define cucumber.filter.tags=@web-navigation-test
-      
