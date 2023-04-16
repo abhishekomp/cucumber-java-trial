@@ -18,7 +18,7 @@ public class MyStepDefinitions {
 
     @Then("I enter the username as {string} and password as {string}")
     public void i_enter_the_username_as_and_password_as(String username, String password) {
-        System.out.println("I enter username as '" + username + "' and password as '" + password + "'");
+        System.out.println(">>>>>>>>>>I enter username as '" + username + "' and password as '" + password + "'");
     }
 
     @Then("I click login button")
