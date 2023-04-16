@@ -1,6 +1,3 @@
-
-
-
 @scenario_outline
 Feature: Cucumber Feature File for demonstrating Scenario Outline
   This is a simple feature file to try out Cucumber for Java
@@ -16,6 +13,7 @@ Feature: Cucumber Feature File for demonstrating Scenario Outline
       | admin    | admin    |
       | testing  | qa       |
 
+  @scenario-outline-index
   Scenario Outline: Example scenario outline using integer index
     Given I open the login page for my web portal <index>
     Then I am on the homepage <index>
