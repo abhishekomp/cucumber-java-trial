@@ -1,4 +1,7 @@
-@second-feature
+
+
+
+@scenario_outline
 Feature: Cucumber Feature File for demonstrating Scenario Outline
   This is a simple feature file to try out Cucumber for Java
 
