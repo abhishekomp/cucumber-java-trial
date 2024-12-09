@@ -22,14 +22,14 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Step 1 - Checkout master branch from Github
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
-          java-version: '1.8'
+          distribution: 'temurin'
+          java-version: '17'
 
-      
       - name: Install Maven
         run: mvn -B package --file pom.xml
       
@@ -44,8 +44,7 @@ jobs:
      
       - name: User Actor Email
         run: 'echo "User Actor: ${{ github.actor }}"'
-          
-      
+
       # Access the sent value from postman
       - name: Read the input value from postman
         run: 'echo "Event text: ${{ github.event.client_payload.example-key }}"'
@@ -56,9 +55,5 @@ jobs:
           TEST_ORDERNUM: ${{ github.event.inputs.ordernumber }}
         #run: mvn test -Dtest=TestRunner
         run: >
-          mvn test -Dtest=TestRunner
-          --define cucumber.filter.tags=@P2
-
-      - name: Incoming value from Java Program
-          run: 'echo "Current Day: ${{ TEST_CURRENT_DAY }}"'
-      
+          mvn test -Dtest=CucumberTest
+          --define cucumber.filter.tags=@web-navigation-test
