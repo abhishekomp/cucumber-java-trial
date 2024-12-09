@@ -52,4 +52,4 @@ jobs:
         #run: mvn test -Dtest=TestRunner
         run: >
           mvn test -Dtest=CucumberTest
-          --define cucumber.filter.tags=@process-order
+          --define cucumber.filter.tags=@process_order
