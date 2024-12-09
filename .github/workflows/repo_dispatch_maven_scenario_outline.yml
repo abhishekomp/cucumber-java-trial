@@ -45,7 +45,7 @@ jobs:
       - name: Build with Maven
         env:
           TEST_CLIENT_PAYLOAD: "${{ toJSON(github.event.client_payload) }}"
-          TEST_CLIENT_ICCID: "${{ toJson(github.event.client_payload.icc) }}"
+          TEST_CLIENT_ORDER_NUMBERS: "${{ toJson(github.event.client_payload.ordernumbers) }}"
           GITHUB_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         #run: mvn test -Dtest=TestRunner
         run: >
