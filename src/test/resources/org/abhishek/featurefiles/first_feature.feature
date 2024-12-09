@@ -26,3 +26,8 @@ Feature: Cucumber First Feature File
       | password | web-navigation-test-password |
     Then I click login button
     Then I am on the homepage
+
+  @process_order
+  Scenario: Scenario Example - Example scenario for processing Order passed from workflow dispatch
+    Given An Order number is received
+    Then The Order is processed

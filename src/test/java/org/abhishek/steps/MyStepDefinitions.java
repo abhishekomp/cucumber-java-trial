@@ -56,4 +56,14 @@ public class MyStepDefinitions {
     public void iAmOnTheHomepageIndex(int index) {
         System.out.println("I am on the homepage " + index);
     }
+
+    @Given("An Order number is received")
+    public void anOrderNumberIsReceived() {
+        System.out.println("Processing OrderNumber = " + System.getenv("TEST_ORDERNUM"));
+    }
+
+    @Then("The Order is processed")
+    public void theOrderIsProcessed() {
+        System.out.println("Order was processed");
+    }
 }
