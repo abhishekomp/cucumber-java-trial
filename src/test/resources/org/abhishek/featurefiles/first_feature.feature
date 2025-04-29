@@ -27,7 +27,7 @@ Feature: Cucumber First Feature File
     Then I click login button
     Then I am on the homepage
 
-  @process_order
+  @process_order @RemoveFiles
   Scenario: Scenario Example - Example scenario for processing Order passed from workflow dispatch
     Given An Order number is received
     Then The Order is processed
