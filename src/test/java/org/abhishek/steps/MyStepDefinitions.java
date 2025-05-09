@@ -66,4 +66,9 @@ public class MyStepDefinitions {
     public void theOrderIsProcessed() {
         System.out.println("Order was processed");
     }
+
+    @Given("{userReference} has created the organization {string}")
+    public void super_userHasCreatedTheOrganization(UserReference userReference, String orgName) {
+        System.out.println(userReference.getReference() + " has created an organization with name " + orgName);
+    }
 }

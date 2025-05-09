@@ -31,3 +31,6 @@ Feature: Cucumber First Feature File
   Scenario: Scenario Example - Example scenario for processing Order passed from workflow dispatch
     Given An Order number is received
     Then The Order is processed
+
+  Scenario: Demonstrating passing an object to the step definition
+    Given SUPER_USER has created the organization "ACME Org"

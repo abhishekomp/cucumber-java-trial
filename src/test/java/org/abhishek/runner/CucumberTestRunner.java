@@ -15,6 +15,6 @@ import org.junit.runner.RunWith;
                 "json:target/test-cucumber_report.json",
                 "html:target/html-reports.htm"
         })
-public class CucumberTest {
+public class CucumberTestRunner {
 
 }
