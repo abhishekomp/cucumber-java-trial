@@ -71,4 +71,18 @@ public class MyStepDefinitions {
     public void super_userHasCreatedTheOrganization(UserReference userReference, String orgName) {
         System.out.println(userReference.getReference() + " has created an organization with name " + orgName);
     }
+
+    @Given("I have a user with role {}")
+    public void iHaveAUserWithRoleADMIN(Role role) {
+        System.out.println("I have a user with role: " + role);
+    }
+
+    @Then("I can perform actions that only {} can perform")
+    public void iCanPerformActionsThatOnlyADMINCanPerform(Role role) {
+        if (role == Role.ADMIN) {
+            System.out.println("Performing actions that only ADMIN can perform");
+        } else {
+            System.out.println("Cannot perform actions for role: " + role);
+        }
+    }
 }
