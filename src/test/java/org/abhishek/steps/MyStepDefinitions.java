@@ -85,4 +85,15 @@ public class MyStepDefinitions {
             System.out.println("Cannot perform actions for role: " + role);
         }
     }
+
+    @Then("It is {word} that I can perform actions that USER can perform")
+    public void itIsTrueThatICanPerformActionsThatUSERCanPerform(String isTrue) {
+        // Convert the string to a boolean value
+        boolean isTrueBoolean = Boolean.parseBoolean(isTrue);
+        if (isTrueBoolean) {
+            System.out.println("It is true that I can perform actions that USER can perform");
+        } else {
+            System.out.println("It is false that I can perform actions that USER can perform");
+        }
+    }
 }

@@ -35,6 +35,12 @@ Feature: Cucumber First Feature File
   Scenario: Demonstrating passing an object to the step definition
     Given SUPER_USER has created the organization "ACME Org"
 
+   # Demonstrating usage of Enum in step definition
   Scenario: Demonstrating usage of Enum in step definition
     Given I have a user with role ADMIN
     Then I can perform actions that only ADMIN can perform
+
+    # Demonstrating usage of Boolean in step definition
+    Scenario: Demonstrating usage of Boolean in step definition
+      Given I have a user with role USER
+      Then It is true that I can perform actions that USER can perform
