@@ -1,4 +1,4 @@
-package org.abhishek.steps;
+package org.abhishek;
 
 import org.junit.Test;
 
