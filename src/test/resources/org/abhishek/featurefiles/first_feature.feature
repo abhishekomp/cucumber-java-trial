@@ -41,6 +41,18 @@ Feature: Cucumber First Feature File
     Then I can perform actions that only ADMIN can perform
 
     # Demonstrating usage of Boolean in step definition
-    Scenario: Demonstrating usage of Boolean in step definition
-      Given I have a user with role USER
-      Then It is true that I can perform actions that USER can perform
+  Scenario: Demonstrating usage of Boolean in step definition
+    Given I have a user with role USER
+    Then It is true that I can perform actions that USER can perform
+
+    # Demonstrating usage of @ParameterType in step definition
+  Scenario: Demonstrating usage of @ParameterType in step definition
+    Given I have an Order with Order number T-12345 with priority HIGH and delivery date 2025-12-31
+    Then I can process the Order with Order number T-12345
+
+    # Demonstrating usage of @ParameterType in step definition
+  Scenario: Demonstrating usage of @ParameterType in step definition
+    Given I have an Order with Order number T-123456 with priority HIGH and delivery date 2025-12-31
+    Then I can process the Order with Order number T-12345
+    # The Order number in this implementation must start with T- and be followed by 5 digits
+

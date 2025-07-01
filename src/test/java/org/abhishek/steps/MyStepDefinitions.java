@@ -3,6 +3,7 @@ package org.abhishek.steps;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -95,5 +96,19 @@ public class MyStepDefinitions {
         } else {
             System.out.println("It is false that I can perform actions that USER can perform");
         }
+    }
+
+
+    @Given("I have an Order with Order number {orderNum} with priority {priority} and delivery date {isoDate}")
+    public void iHaveAnOrderWithOrderNumberTWithPriorityHIGHAndDeliveryDate(String orderNum, Priority priority, LocalDate isoDate) {
+        System.out.println("I have an Order with Order number: " + orderNum);
+        System.out.println("Priority: " + priority);
+        System.out.println("Delivery Date: " + isoDate);
+    }
+
+    @Then("I can process the Order with Order number {orderNum}")
+    public void iCanProcessTheOrderWithOrderNumberT(String orderNum) {
+        // The orderNum parameter can also be a custom type, such as OrderNum and cucumber will convert it automatically and inject it here when the step is executed
+        System.out.println("Processing Order with Order number: " + orderNum);
     }
 }
