@@ -1,8 +1,26 @@
-# This is a basic workflow to help you get started with Actions
+# =============================================================================
+# Workflow: Workflow Dispatch with Inputs
+# Purpose:  Manually triggered workflow that accepts an order number as input
+#           and passes it to the Cucumber test run as an environment variable.
+#           Also demonstrates how NOT to use client_payload — this is a
+#           workflow_dispatch, so github.event.client_payload is NEVER set.
+#
+# Trigger:  Manual — via "Run workflow" button in GitHub Actions UI.
+#           The form will show one text field: "Order number to process".
+#
+# NOTE ON BUG IN THIS WORKFLOW:
+#   This workflow is workflow_dispatch, but it contains a step that reads
+#   github.event.client_payload.example-key. That field only exists for
+#   repository_dispatch events — it will always be EMPTY here. The step is
+#   kept for learning purposes but should be removed in production use.
+# =============================================================================
 
 name: Workflow dispatch with inputs
 
-# Controls when the workflow will run
+# ── Trigger ───────────────────────────────────────────────────────────────────
+# workflow_dispatch with inputs creates a form in the GitHub Actions UI.
+# 'ordernumber' will appear as a labelled text field when the user clicks
+# "Run workflow".
 on:
   workflow_dispatch:
     inputs:
@@ -11,49 +29,78 @@ on:
         required: true
         default: ''
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step 1 - Checkout master branch from Github
+      # ── Step 1: Check out the repository ────────────────────────────────────
+      # Clones the repo into the runner's workspace. @v4 is the current stable
+      # version of the checkout action.
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      # ── Step 2: Set up Java 17 ───────────────────────────────────────────────
+      # Installs Java 17 (Temurin / Eclipse Adoptium) on the runner.
+      # NOTE: The pom.xml targets Java 21 — ideally this should be '21'.
+      #       Consider updating java-version to '21' for full compatibility.
+      - name: Set up Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Maven
+      # ── Step 3: Build and test with Maven ────────────────────────────────────
+      # Compiles all source code and runs the full test suite.
+      # The Maven 'package' phase includes the 'test' phase.
+      # -B = batch mode for clean, non-interactive CI output.
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
-      
-      - name: List the current directory
+
+      # ── Step 4: List workspace root ──────────────────────────────────────────
+      # Confirms the workspace contents after checkout and build.
+      - name: List workspace root directory
         run: ls -a
-      
-      # Runs a set of commands using the runners shell  
-      - name: What is in target directory?
+
+      # ── Step 5: List target directory ────────────────────────────────────────
+      # Verifies Maven produced the expected output in the target/ folder.
+      - name: List target directory contents
         run: |
           cd target
           ls -a
-     
-      - name: User Actor Email
-        run: 'echo "User Actor: ${{ github.actor }}"'
 
-      # Access the sent value from postman
-      - name: Read the input value from postman
-        run: 'echo "Event text: ${{ github.event.client_payload.example-key }}"'
+      # ── Step 6: Print the GitHub actor ───────────────────────────────────────
+      # Logs the username of whoever triggered this workflow run.
+      - name: Print the GitHub actor who triggered this run
+        run: 'echo "Triggered by: ${{ github.actor }}"'
 
-      - name: Build with Maven
+      # ── Step 7: Attempt to read client_payload (WILL BE EMPTY) ───────────────
+      # ⚠️  THIS STEP HAS A CONCEPTUAL BUG:
+      # github.event.client_payload is ONLY populated for 'repository_dispatch'
+      # events. Since this workflow uses 'workflow_dispatch', this expression
+      # will always evaluate to an empty string.
+      # If you want to pass data via the API to a workflow_dispatch workflow,
+      # use the 'inputs:' mechanism above instead (see the ordernumber input).
+      # This step is left in place to illustrate the difference.
+      - name: Read client_payload (EMPTY for workflow_dispatch — see comment above)
+        run: 'echo "Event text (will be empty): ${{ github.event.client_payload.example-key }}"'
+
+      # ── Step 8: Run targeted Cucumber tests with the provided order number ────
+      # This is the core of the workflow. The user's input flows through:
+      #   github.event.inputs.ordernumber → TEST_ORDERNUM env var → System.getenv()
+      #
+      # Only scenarios tagged @web-navigation-test are executed.
+      #
+      # GITHUB_RUN_URL provides a clickable link back to this run on GitHub,
+      # useful when posting results to Slack, Jira, or other systems.
+      #
+      # NOTE: The original referenced 'CucumberTest' which does not exist in
+      #       this project. The correct runner class is 'RunCucumberTestDemo'.
+      - name: Run Cucumber tests (tag @web-navigation-test) with order number
         env:
           GITHUB_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEST_ORDERNUM: ${{ github.event.inputs.ordernumber }}
-        #run: mvn test -Dtest=TestRunner
         run: >
-          mvn test -Dtest=CucumberTest
+          mvn test -Dtest=RunCucumberTestDemo
           --define cucumber.filter.tags=@web-navigation-test

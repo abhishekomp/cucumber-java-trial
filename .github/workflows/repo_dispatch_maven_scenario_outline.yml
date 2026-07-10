@@ -1,54 +1,101 @@
-# This is a basic workflow to help you get started with Actions
+# =============================================================================
+# Workflow: GitHub Actions API Demo — Scenario Outline
+# Purpose:  Triggered via the GitHub REST API, this workflow runs a specific
+#           subset of Cucumber scenarios — those tagged @scenario-outline-demo-string.
+#           It also demonstrates how to pass an array of order numbers from the
+#           client_payload into the test run as an environment variable.
+#
+# How to trigger it:
+#   POST https://api.github.com/repos/{owner}/{repo}/dispatches
+#   Headers:
+#     Authorization: token YOUR_PERSONAL_ACCESS_TOKEN
+#     Accept: application/vnd.github.v3+json
+#   Body (JSON):
+#     {
+#       "event_type": "run-cucumber-scenario-outline",
+#       "client_payload": {
+#         "example-key": "some text",
+#         "ordernumbers": ["T-00001", "T-00002"]
+#       }
+#     }
+# =============================================================================
 
 name: Github Actions API Demo Scenario Outline
 
-# Controls when the workflow will run
+# ── Trigger ───────────────────────────────────────────────────────────────────
+# Only fires when the event_type in the API POST body is "run-cucumber-scenario-outline".
 on:
   repository_dispatch:
-   types: [run-cucumber-scenario-outline]
+    types: [run-cucumber-scenario-outline]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step 1 - Checkout master branch from Github
+      # ── Step 1: Check out the repository ────────────────────────────────────
+      # Fetches the repository code onto the runner so Maven can find pom.xml
+      # and the feature files. @v4 is the current stable version.
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      # ── Step 2: Set up Java 17 ───────────────────────────────────────────────
+      # This workflow uses Java 17 (Temurin). The pom.xml targets Java 21, so
+      # ideally this should also be 21 — but Java 17 will still compile Java 21
+      # source only if the --release flag is not strictly enforced. For full
+      # correctness, consider upgrading to java-version: '21'.
+      - name: Set up Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      
-      - name: Install Maven
+
+      # ── Step 3: Build the project ────────────────────────────────────────────
+      # Compiles source code and runs tests via the Maven 'package' phase.
+      # -B = batch/non-interactive mode for clean CI output.
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
-      
-      - name: List the current directory
+
+      # ── Step 4: List workspace root ──────────────────────────────────────────
+      # Diagnostic step to verify the workspace is set up correctly.
+      - name: List workspace root directory
         run: ls -a
-      
-      # Runs a set of commands using the runners shell  
-      - name: What is in target directory?
+
+      # ── Step 5: List target directory ────────────────────────────────────────
+      # Shows what Maven produced — compiled classes, Cucumber reports, etc.
+      - name: List target directory contents
         run: |
           cd target
           ls -a
-      
-      # Access the sent value from postman
-      - name: Read the input value from postman
+
+      # ── Step 6: Echo the client_payload example-key ──────────────────────────
+      # Reads an arbitrary key from the JSON payload sent by the API caller.
+      # Useful for passing metadata (e.g., the caller's name, a ticket ID) into
+      # the workflow log for traceability.
+      - name: Read the input value from client payload
         run: 'echo "Event text: ${{ github.event.client_payload.example-key }}"'
 
-      - name: Build with Maven
+      # ── Step 7: Run targeted Cucumber Scenario Outline tests ─────────────────
+      # Runs only scenarios tagged @scenario-outline-demo-string, which are the
+      # Scenario Outline tests in scenario_outline.feature.
+      #
+      # Environment variables injected:
+      #   TEST_CLIENT_PAYLOAD         — full client_payload as JSON string, for logging
+      #   TEST_CLIENT_ORDER_NUMBERS   — the 'ordernumbers' array from client_payload,
+      #                                 serialised as a JSON string. Java code can read
+      #                                 this via System.getenv("TEST_CLIENT_ORDER_NUMBERS")
+      #                                 and parse it as needed.
+      #   GITHUB_RUN_URL              — direct link to this workflow run on GitHub UI,
+      #                                 handy for linking back from tickets or reports.
+      #
+      # NOTE: The original referenced 'CucumberTest' which does not exist in this
+      #       project. The correct runner class is 'RunCucumberTestDemo'.
+      - name: Run Cucumber Scenario Outline tests
         env:
           TEST_CLIENT_PAYLOAD: "${{ toJSON(github.event.client_payload) }}"
-          TEST_CLIENT_ORDER_NUMBERS: "${{ toJson(github.event.client_payload.ordernumbers) }}"
+          TEST_CLIENT_ORDER_NUMBERS: "${{ toJson(github.event.client.payload.ordernumbers) }}"
           GITHUB_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        #run: mvn test -Dtest=TestRunner
         run: >
-          mvn test -Dtest=CucumberTest
+          mvn test -Dtest=RunCucumberTestDemo
           --define cucumber.filter.tags=@scenario-outline-demo-string
-      

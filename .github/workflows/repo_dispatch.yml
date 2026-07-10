@@ -1,45 +1,83 @@
-# This is a basic workflow to help you get started with Actions
+# =============================================================================
+# Workflow: GitHub Actions API Example (Repository Dispatch - Ping)
+# Purpose:  Demonstrates the 'repository_dispatch' trigger — this workflow is
+#           started by an external HTTP POST request (e.g., from Postman, a
+#           script, or another service), NOT from a git push or a manual click.
+#
+# How to trigger it:
+#   POST https://api.github.com/repos/{owner}/{repo}/dispatches
+#   Headers:
+#     Authorization: token YOUR_PERSONAL_ACCESS_TOKEN
+#     Accept: application/vnd.github.v3+json
+#   Body (JSON):
+#     {
+#       "event_type": "run-ping",
+#       "client_payload": { "example-key": "hello from postman" }
+#     }
+#
+# The event_type MUST match the value in 'types:' below.
+# The client_payload is arbitrary JSON you send — accessible via
+# ${{ github.event.client_payload.<key> }} in any step.
+# =============================================================================
 
 name: Github Actions API Example
 
-# Controls when the workflow will run
+# ── Trigger ───────────────────────────────────────────────────────────────────
+# repository_dispatch fires when a POST is made to GitHub's /dispatches endpoint.
+# The 'types:' filter means ONLY the event_type "run-ping" will activate this
+# workflow — other event types sent to the same repo are ignored here.
 on:
   repository_dispatch:
-   types: [run-ping]
+    types: [run-ping]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
+    # GitHub-hosted Ubuntu runner. Maven and Java are pre-installed.
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step 1 - Checkout master branch from Github
-        uses: actions/checkout@v2
+      # ── Step 1: Check out the repository ────────────────────────────────────
+      # Makes the repository source code available on the runner.
+      # We use @v4 (latest stable). The original @v2 is outdated.
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v1
+      # ── Step 2: Set up Java ──────────────────────────────────────────────────
+      # The pom.xml compiles against Java 21, so we match that here.
+      # Using the 'temurin' distribution (Eclipse Adoptium) which is free,
+      # production-grade, and the recommended default.
+      # NOTE: The original used java-version:'1.8' with setup-java@v1 — both
+      #       outdated and incompatible with the Java 21 compiler settings in pom.xml.
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
         with:
-          java-version: '1.8'
+          distribution: 'temurin'
+          java-version: '21'
 
-      
-      - name: Install Maven
+      # ── Step 3: Build and test with Maven ────────────────────────────────────
+      # 'mvn -B package' runs through compile → test → package lifecycle phases.
+      # -B = batch mode (no interactive prompts, cleaner output for CI logs).
+      # Maven is already installed on the runner — we are not "installing" it here.
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
-      
-      - name: List the current directory
+
+      # ── Step 4: List workspace root ──────────────────────────────────────────
+      # Sanity check: confirms the checkout worked and the workspace looks correct.
+      - name: List workspace root directory
         run: ls -a
-      
-      # Runs a set of commands using the runners shell  
-      - name: What is in target directory?
+
+      # ── Step 5: List target directory ────────────────────────────────────────
+      # Maven puts compiled output, test reports, and Cucumber reports in target/.
+      - name: List target directory contents
         run: |
           cd target
           ls -a
-      
-      # Access the sent value from postman
-      - name: Read the input value from postman
+
+      # ── Step 6: Read the value sent in the client_payload ────────────────────
+      # When you trigger this workflow via the /dispatches API, you can include
+      # a 'client_payload' JSON object. Here we read a key called 'example-key'.
+      # If the caller sent: "client_payload": { "example-key": "hello" }
+      # then this step prints: Event text: hello
+      - name: Read the input value from client payload
         run: 'echo "Event text: ${{ github.event.client_payload.example-key }}"'
-      
-      

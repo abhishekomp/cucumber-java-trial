@@ -1,55 +1,111 @@
-# This is a basic workflow to help you get started with Actions
+# =============================================================================
+# Workflow: Workflow Dispatch — Process Incoming Order
+# Purpose:  Demonstrates how to accept a user-supplied input (an order number)
+#           via the GitHub Actions UI, inject it as an environment variable,
+#           and make it available to your Java/Cucumber tests at runtime.
+#
+#           This is the primary integration pattern for "parameterised" test runs:
+#           an external system (or a human) provides a value, the workflow passes
+#           it to the JVM, and your step definition reads it with System.getenv().
+#
+# Trigger:  Manual — via "Run workflow" in GitHub Actions UI.
+#           When opened, the UI will show a text field labelled
+#           "Enter Order number to process".
+#
+# Related Java code:
+#   MyStepDefinitions.java → anOrderNumberIsReceived():
+#     System.out.println(System.getenv("TEST_ORDERNUM"));
+#
+#   first_feature.feature → @process_order scenario
+# =============================================================================
 
 name: Workflow dispatch Process Order
 
-# Controls when the workflow will run
+# ── Trigger ───────────────────────────────────────────────────────────────────
+# workflow_dispatch with 'inputs' creates a form in the GitHub Actions UI.
+# Each key under 'inputs' becomes a named form field.
 on:
   workflow_dispatch:
     inputs:
       ordernumber:
+        # This text appears as the label next to the input field in the UI.
         description: 'Enter Order number to process'
+        # required: true means the workflow cannot be dispatched without a value.
         required: true
+        # default: '' means the field starts empty — the user must type something.
         default: ''
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
+    # Ubuntu runner — Maven, Git and a default JDK are pre-installed.
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step 1 - Checkout master branch from Github
+      # ── Step 1: Check out the repository ────────────────────────────────────
+      # Fetches the latest code from the branch selected in the dispatch form.
+      # @v4 is the current stable version of the checkout action.
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      # ── Step 2: Set up Java 17 ───────────────────────────────────────────────
+      # Installs Temurin (Eclipse Adoptium) Java 17 on the runner.
+      # NOTE: The pom.xml targets Java 21. For strict correctness this should
+      #       be java-version: '21'. Java 17 may still work if the JVM can run
+      #       bytecode compiled with --release 21, but it is better to match.
+      - name: Set up Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Maven
+      # ── Step 3: Build the project ────────────────────────────────────────────
+      # Runs 'mvn -B package' which compiles all code and executes all tests.
+      # -B = batch mode: disables interactive prompts, cleaner CI output.
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
-      
-      - name: List the current directory
+
+      # ── Step 4: List workspace root ──────────────────────────────────────────
+      # Diagnostic: confirms the checkout succeeded and workspace looks right.
+      - name: List workspace root directory
         run: ls -a
-      
-      # Runs a set of commands using the runners shell  
-      - name: What is in target directory?
+
+      # ── Step 5: List target directory ────────────────────────────────────────
+      # Shows the Maven build output folder. You should see .class files and
+      # the Cucumber JSON/HTML reports after the build completes.
+      - name: List target directory contents
         run: |
           cd target
           ls -a
-     
-      - name: User Actor Email
-        run: 'echo "User Actor: ${{ github.actor }}"'
 
-      - name: Build with Maven
+      # ── Step 6: Print the GitHub actor ───────────────────────────────────────
+      # Logs who triggered this workflow run. github.actor is the GitHub username
+      # of the person who clicked "Run workflow" (or the service account/bot).
+      - name: Print the GitHub actor who triggered this run
+        run: 'echo "Triggered by: ${{ github.actor }}"'
+
+      # ── Step 7: Run Cucumber tests for the @process_order tag ────────────────
+      # This step is where the order number input is injected into the test.
+      #
+      # How it works end-to-end:
+      #   1. User enters "T-00042" in the workflow dispatch form.
+      #   2. GitHub stores it as github.event.inputs.ordernumber = "T-00042".
+      #   3. We set the environment variable TEST_ORDERNUM to that value.
+      #   4. Maven forks a JVM to run the tests. That JVM inherits the env var.
+      #   5. The Cucumber step definition calls System.getenv("TEST_ORDERNUM")
+      #      and gets back "T-00042".
+      #
+      # Only scenarios tagged @process_order are executed (see first_feature.feature).
+      #
+      # GITHUB_RUN_URL is constructed from context expressions and gives a direct
+      # link to this run's page on GitHub — useful for notifications/reporting.
+      #
+      # NOTE: The original referenced 'CucumberTest' which does not exist.
+      #       The correct runner class name is 'RunCucumberTestDemo'.
+      - name: Run Cucumber tests (tag @process_order) with order number
         env:
           GITHUB_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEST_ORDERNUM: ${{ github.event.inputs.ordernumber }}
-        #run: mvn test -Dtest=TestRunner
         run: >
-          mvn test -Dtest=CucumberTest
+          mvn test -Dtest=RunCucumberTestDemo
           --define cucumber.filter.tags=@process_order

@@ -51,7 +51,13 @@ Feature: Cucumber First Feature File
     Then I can process the Order with Order number T-12345
 
     # Demonstrating usage of @ParameterType in step definition
-  Scenario: Demonstrating usage of @ParameterType in step definition
+    # @demo-regex-mismatch: This scenario is INTENTIONALLY undefined.
+    # The {orderNum} parameter type regex requires exactly 5 digits after T- (T-\d{5}).
+    # T-123456 has 6 digits, so Cucumber cannot match the step — this is here to show
+    # learners what an "Undefined step" error looks like. It is excluded from the
+    # default test run via the 'not @demo-regex-mismatch' tag filter in the runner.
+  @demo-regex-mismatch
+  Scenario: Demonstrating usage of @ParameterType in step definition — regex mismatch (intentionally undefined)
     Given I have an Order with Order number T-123456 with priority HIGH and delivery date 2025-12-31
     Then I can process the Order with Order number T-12345
     # The Order number in this implementation must start with T- and be followed by 5 digits

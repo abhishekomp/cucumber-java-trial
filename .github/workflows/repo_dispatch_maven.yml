@@ -1,54 +1,100 @@
-# This is a basic workflow to help you get started with Actions
+# =============================================================================
+# Workflow: GitHub Actions API Example Two (Repository Dispatch - Maven run)
+# Purpose:  Like the "run-ping" workflow but goes a step further — after
+#           building the project it runs a specific subset of Cucumber scenarios
+#           filtered by tag, AND passes data from the client_payload into the
+#           Maven test run as environment variables.
+#
+# How to trigger it:
+#   POST https://api.github.com/repos/{owner}/{repo}/dispatches
+#   Headers:
+#     Authorization: token YOUR_PERSONAL_ACCESS_TOKEN
+#     Accept: application/vnd.github.v3+json
+#   Body (JSON):
+#     {
+#       "event_type": "run-ping-maven",
+#       "client_payload": {
+#         "example-key": "some text",
+#         "icc": "8931080019051137054"
+#       }
+#     }
+# =============================================================================
 
 name: Github Actions API Example Two
 
-# Controls when the workflow will run
+# ── Trigger ───────────────────────────────────────────────────────────────────
+# Only fires when the event_type in the API call is exactly "run-ping-maven".
 on:
   repository_dispatch:
-   types: [run-ping-maven]
+    types: [run-ping-maven]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step 1 - Checkout master branch from Github
-        uses: actions/checkout@v2
+      # ── Step 1: Check out the repository ────────────────────────────────────
+      # Clones the repo into the runner workspace so all subsequent steps can
+      # access source files, the pom.xml, feature files, etc.
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v1
+      # ── Step 2: Set up Java ──────────────────────────────────────────────────
+      # Installs Java 21 to match the <maven.compiler.source>21</maven.compiler.source>
+      # setting in pom.xml. Without this, compilation would fail.
+      # NOTE: Original used Java 1.8 with the outdated setup-java@v1 action.
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
         with:
-          java-version: '1.8'
+          distribution: 'temurin'
+          java-version: '21'
 
-      
-      - name: Install Maven
+      # ── Step 3: Build the project (compile + run tests) ──────────────────────
+      # 'mvn -B package' compiles everything and runs the full test suite.
+      # This ensures the project is healthy before we run the targeted test below.
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
-      
-      - name: List the current directory
+
+      # ── Step 4: List workspace root ──────────────────────────────────────────
+      # Diagnostic: confirms the workspace contents after checkout.
+      - name: List workspace root directory
         run: ls -a
-      
-      # Runs a set of commands using the runners shell  
-      - name: What is in target directory?
+
+      # ── Step 5: List target directory ────────────────────────────────────────
+      # Confirms that Maven produced output (classes, reports) in target/.
+      - name: List target directory contents
         run: |
           cd target
           ls -a
-      
-      # Access the sent value from postman
-      - name: Read the input value from postman
+
+      # ── Step 6: Echo the client_payload example-key ──────────────────────────
+      # Demonstrates how to read a top-level key from the client_payload object
+      # that was sent in the API request body.
+      - name: Read the input value from client payload
         run: 'echo "Event text: ${{ github.event.client_payload.example-key }}"'
 
-      - name: Build with Maven
+      # ── Step 7: Run targeted Cucumber tests ──────────────────────────────────
+      # Runs only the Cucumber test runner class (RunCucumberTestDemo) and
+      # further filters to scenarios tagged @P2 using the Cucumber tag filter.
+      #
+      # Environment variables:
+      #   TEST_CLIENT_PAYLOAD  — the full client_payload JSON, useful for logging
+      #   TEST_CLIENT_ICCID    — a specific field from client_payload (the ICC ID),
+      #                          demonstrating how to extract and inject a nested value
+      #   GITHUB_RUN_URL       — a human-readable link back to this specific run,
+      #                          useful if you post results back to a ticketing system
+      #
+      # The '>' YAML block scalar joins the next lines into one command, so
+      # '--define cucumber.filter.tags=@P2' is passed as an argument to mvn.
+      #
+      # NOTE: The original referenced 'TestRunner' which does not exist in this
+      #       project. The correct runner class is 'RunCucumberTestDemo'.
+      - name: Run Cucumber tests (tag @P2)
         env:
           TEST_CLIENT_PAYLOAD: "${{ toJSON(github.event.client_payload) }}"
-          TEST_CLIENT_ICCID: "${{ toJson(github.event.client_payload.icc) }}"
+          TEST_CLIENT_ICCID: "${{ toJson(github.event.client.payload.icc) }}"
           GITHUB_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        #run: mvn test -Dtest=TestRunner
         run: >
-          mvn test -Dtest=TestRunner
+          mvn test -Dtest=RunCucumberTestDemo
           --define cucumber.filter.tags=@P2
-      

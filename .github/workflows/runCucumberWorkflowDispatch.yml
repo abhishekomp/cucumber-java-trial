@@ -1,50 +1,95 @@
-# This is a basic workflow to help you get started with Actions
+# =============================================================================
+# Workflow: Run Cucumber — Workflow Dispatch (Basic)
+# Purpose:  Manually trigger the Cucumber test suite from the GitHub Actions UI.
+#           Runs scenarios tagged @web-navigation-test.
+#           This is a simpler version of the dispatch workflow — it has no
+#           user-defined inputs (no form fields in the UI).
+#
+# Trigger:  Manual — via "Run workflow" button in GitHub Actions UI,
+#           or via the REST API:
+#             POST https://api.github.com/repos/{owner}/{repo}/actions/workflows
+#                  /runCucumberWorkflowDispatch.yml/dispatches
+#             Body: { "ref": "main" }
+# =============================================================================
 
 name: RunCucumberWorkflowDispatch
 
-# Controls when the workflow will run
+# ── Trigger ───────────────────────────────────────────────────────────────────
+# workflow_dispatch = manual trigger only. No inputs defined here, so the
+# "Run workflow" dialog in GitHub UI will just have a "Run workflow" button.
 on:
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
+    # Use the latest Ubuntu runner. Free for public repos.
+    # Maven and a default Java version are pre-installed.
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step 1 - Checkout master branch from Github
-        uses: actions/checkout@v2
+      # ── Step 1: Check out the repository ────────────────────────────────────
+      # Fetches the repo code into the runner's $GITHUB_WORKSPACE directory.
+      # Every subsequent step can access your source files from this point on.
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v1
+      # ── Step 2: Set up Java ──────────────────────────────────────────────────
+      # The pom.xml targets Java 21. We install Temurin 21 to match.
+      # NOTE: The original used Java 11 with the outdated setup-java@v1 action —
+      #       Java 11 cannot compile Java 21 source, so the original would fail.
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          distribution: 'temurin'
+          java-version: '21'
 
-      
-      - name: Install Maven
+      # ── Step 3: Build and run tests ──────────────────────────────────────────
+      # Compiles all source and runs the full test suite through the Maven
+      # 'package' lifecycle phase. -B = batch mode for cleaner CI output.
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
-      
-      - name: List the current directory
+
+      # ── Step 4: List workspace root ──────────────────────────────────────────
+      # Quick sanity check of the workspace directory contents.
+      - name: List workspace root directory
         run: ls -a
-      
-      # Runs a set of commands using the runners shell  
-      - name: What is in target directory?
+
+      # ── Step 5: List target directory ────────────────────────────────────────
+      # Verifies the build output exists: compiled classes, Surefire reports,
+      # and the Cucumber JSON/HTML reports are all placed here by Maven.
+      - name: List target directory contents
         run: |
           cd target
           ls -a
-     
-      - name: User Actor Email
-        run: 'echo "User Actor: ${{ github.actor }}"'
-          
-      - name: Build with Maven
+
+      # ── Step 6: Print the GitHub actor (who triggered this run) ──────────────
+      # github.actor is the username of the person (or bot) that triggered the
+      # workflow. Useful for audit logs or sending notifications.
+      - name: Print the GitHub actor who triggered this run
+        run: 'echo "Triggered by: ${{ github.actor }}"'
+
+      # ── Step 7: Run targeted Cucumber tests ──────────────────────────────────
+      # Runs RunCucumberTestDemo (the JUnit/Cucumber test runner) but only
+      # executes scenarios that carry the @web-navigation-test tag.
+      #
+      # Environment variables:
+      #   GITHUB_RUN_URL  — a direct URL to this specific workflow run on GitHub,
+      #                     useful for linking back to CI results from external systems.
+      #   TEST_ORDERNUM   — reads the 'ordernumber' workflow_dispatch input.
+      #                     In this workflow there are no inputs defined, so this
+      #                     will be empty — it is here as a placeholder for when
+      #                     inputs are added later.
+      #
+      # The '>' YAML block scalar folds the multi-line value into a single
+      # command, keeping the YAML readable while passing all arguments to mvn.
+      #
+      # NOTE: The original referenced 'CucumberTest' which does not exist.
+      #       The correct runner class name is 'RunCucumberTestDemo'.
+      - name: Run Cucumber tests (tag @web-navigation-test)
         env:
           GITHUB_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           TEST_ORDERNUM: ${{ github.event.inputs.ordernumber }}
-        #run: mvn test -Dtest=TestRunner
         run: >
-          mvn test -Dtest=CucumberTest
+          mvn test -Dtest=RunCucumberTestDemo
           --define cucumber.filter.tags=@web-navigation-test
